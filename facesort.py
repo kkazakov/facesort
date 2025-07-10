@@ -14,6 +14,18 @@ from tqdm import tqdm
 parser = argparse.ArgumentParser(description='FaceSort - Sort images by detected faces')
 parser.add_argument('-o', '--overwrite', action='store_true', help='Allow overwriting existing files')
 parser.add_argument('-i', '--input', type=str, default='./images/', help='Input directory containing images (default: ./images/)')
+parser.add_argument('-m', '--model', type=str, default='VGG-Face', 
+                    choices=['VGG-Face', 'Facenet', 'Facenet512', 'OpenFace', 'DeepFace', 'DeepID', 'ArcFace', 'Dlib', 'SFace'],
+                    help='DeepFace model for face verification (default: VGG-Face)')
+parser.add_argument('-d', '--distance', type=str, default='cosine',
+                    choices=['cosine', 'euclidean', 'euclidean_l2'],
+                    help='Distance metric for face comparison (default: cosine)')
+parser.add_argument('-t', '--threshold', type=float, default=None,
+                    help='Custom threshold for face matching (default: model-specific threshold)')
+parser.add_argument('--enforce-detection', action='store_true', 
+                    help='Enforce face detection (skip images where faces cannot be detected)')
+parser.add_argument('--debug', action='store_true',
+                    help='Show debug information including distance values')
 args = parser.parse_args()
 
 # variables and paths declaration
@@ -47,6 +59,18 @@ PersonID = 0
 arg = '-o' if args.overwrite else ''
 
 print("\nFaceSort - https://github.com/kkazakov/facesort/", "\n")
+
+# display current face matching configuration
+print(f"Face matching configuration:")
+print(f"  Model: {args.model}")
+print(f"  Distance metric: {args.distance}")
+if args.threshold is not None:
+    print(f"  Custom threshold: {args.threshold} (lower = stricter)")
+else:
+    print(f"  Threshold: model default")
+print(f"  Enforce detection: {args.enforce_detection}")
+print(f"  Debug mode: {args.debug}")
+print()
 
 # validate input directory exists
 if not os.path.exists(images_directory):
@@ -131,13 +155,39 @@ def match_face(image, directory, face_to_check, list_of_people=people_list):
         img2_path = directory + person
         
         try:
-            verify = DeepFace.verify(img1_path, img2_path, enforce_detection=False, model_name=deepface_models[0], distance_metric=deepface_metrics[0], align=True)
+            # prepare verification parameters (without threshold - we'll handle it manually)
+            verify_params = {
+                'img1_path': img1_path,
+                'img2_path': img2_path,
+                'enforce_detection': args.enforce_detection,
+                'model_name': args.model,
+                'distance_metric': args.distance,
+                'align': True
+            }
+            
+            verify = DeepFace.verify(**verify_params)
         except Exception as e:
-            print(f"Error verifying faces {face_to_check} and {person}: {e}")
+            if args.debug:
+                print(f"Error verifying faces {face_to_check} and {person}: {e}")
             continue
 
-        # check result of DeepFace verification
-        if verify['verified'] and face_to_check != person:
+        # get the actual distance value
+        distance = verify['distance']
+        
+        # determine if faces match based on custom or default threshold
+        if args.threshold is not None:
+            # use custom threshold
+            faces_match = distance <= args.threshold
+        else:
+            # use DeepFace's default verification result
+            faces_match = verify['verified']
+        
+        # debug output
+        if args.debug:
+            print(f"Comparing {face_to_check} vs {person}: distance={distance:.4f}, threshold={args.threshold if args.threshold else 'default'}, match={faces_match}")
+
+        # check result of face verification
+        if faces_match and face_to_check != person:
             # face already exists, add the current image to the list of this persons ID
             # extract PersonID from the face that face_to_check matched with
             temp_id = str(person).removeprefix(person_face_prefix)
