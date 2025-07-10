@@ -8,6 +8,7 @@ import shutil
 import sys
 import cv2
 import argparse
+from tqdm import tqdm
 
 # parse command line arguments
 parser = argparse.ArgumentParser(description='FaceSort - Sort images by detected faces')
@@ -158,24 +159,25 @@ def extract_faces():
     if not os.path.exists(faces_directory):
         os.mkdir(faces_directory)
     
+    # create progress bar for face extraction
+    pbar = tqdm(total=len(image_list), desc="Extracting faces", unit="image")
+    
     # loop through all images found in the folder
     for image in image_list:
         # use RetinaFace to get all faces in the image
         faces = RetinaFace.extract_faces(images_directory + image, align = True, allow_upscaling = False)
 
-        # list of faces found in image
-        print(len(faces), "face(s) were found in image: ", image)
+        # update progress bar with current status
+        pbar.set_postfix_str(f"Found {len(faces)} faces in {image}")
 
         # loop through all faces in the image
         for face in faces:
             # validate face dimensions before processing
             if face is None or face.size == 0 or len(face.shape) < 2 or face.shape[0] <= 0 or face.shape[1] <= 0:
-                print(f"Skipping invalid face in image: {image}")
                 continue
             
             # additional validation for minimum face size
             if face.shape[0] < 10 or face.shape[1] < 10:
-                print(f"Skipping too small face in image: {image}")
                 continue
                 
             # save temporary temp_face image to faces_directory
@@ -183,6 +185,12 @@ def extract_faces():
 
             # call check_face function to verify and sort faces
             check_face(image, faces_directory, temp_face)
+        
+        # update progress bar
+        pbar.update(1)
+    
+    # close progress bar
+    pbar.close()
 
 
 # sort images into individual PersonID's folders
@@ -190,6 +198,12 @@ def sort_images():
     # create work_path if it doesn't exist
     if not os.path.exists(work_path):
         os.mkdir(work_path)
+    
+    # calculate total number of images to copy for progress bar
+    total_images = sum(len(list_of_faces[individual]) for individual in range(PersonID))
+    
+    # create progress bar for image copying
+    pbar = tqdm(total=total_images, desc="Assigning images", unit="image")
     
     # loop through all individual gathered faces listed in PersonID
     for individual in range(PersonID):
@@ -210,8 +224,17 @@ def sort_images():
             copy_from_path = images_directory + pictures
             copy_to_path = individual_path + pictures
 
+            # update progress bar with current status
+            pbar.set_postfix_str(f"Assigning: Copying image {pictures} to {person_face_prefix}{individual}")
+
             # copy each image to the PersonID's folder
             shutil.copyfile(copy_from_path, copy_to_path)
+            
+            # update progress bar
+            pbar.update(1)
+    
+    # close progress bar
+    pbar.close()
 
 
 print("\nDepending on your system and amount of images this process may take a while.\n")
@@ -223,11 +246,9 @@ scan_images(images_directory)
 list_of_faces = [[] for x in range(len(image_list)*len(image_list))]
 
 # extract faces from images
-print("Extracting faces..")
 extract_faces()
 
 # sort faces to folders
-print("\nSorting images..")
 sort_images()
 
 # delete temporary image face file
