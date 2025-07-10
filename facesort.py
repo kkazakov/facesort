@@ -128,7 +128,12 @@ def match_face(image, directory, face_to_check, list_of_people=people_list):
         # variables for DeepFace verification
         img1_path = directory + face_to_check
         img2_path = directory + person
-        verify = DeepFace.verify(img1_path, img2_path, enforce_detection=False, model_name=deepface_models[0], distance_metric=deepface_metrics[0], align=True)
+        
+        try:
+            verify = DeepFace.verify(img1_path, img2_path, enforce_detection=False, model_name=deepface_models[0], distance_metric=deepface_metrics[0], align=True)
+        except Exception as e:
+            print(f"Error verifying faces {face_to_check} and {person}: {e}")
+            continue
 
         # check result of DeepFace verification
         if verify['verified'] and face_to_check != person:
@@ -163,6 +168,16 @@ def extract_faces():
 
         # loop through all faces in the image
         for face in faces:
+            # validate face dimensions before processing
+            if face is None or face.size == 0 or len(face.shape) < 2 or face.shape[0] <= 0 or face.shape[1] <= 0:
+                print(f"Skipping invalid face in image: {image}")
+                continue
+            
+            # additional validation for minimum face size
+            if face.shape[0] < 10 or face.shape[1] < 10:
+                print(f"Skipping too small face in image: {image}")
+                continue
+                
             # save temporary temp_face image to faces_directory
             plt.imsave(fname = faces_directory + temp_face, format='png', arr=face)
 
