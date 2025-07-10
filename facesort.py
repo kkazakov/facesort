@@ -209,8 +209,9 @@ def extract_faces():
     if not os.path.exists(faces_directory):
         os.mkdir(faces_directory)
     
-    # create progress bar for face extraction
-    pbar = tqdm(total=len(image_list), desc="Extracting faces", unit="image")
+    # create progress bar for face extraction with time-based ETA
+    pbar = tqdm(total=len(image_list), desc="Extracting faces", unit="image", 
+                bar_format='{l_bar}{bar}| {n_fmt}/{total_fmt} [{elapsed}<{remaining}, {rate_fmt}] {postfix}')
     
     # loop through all images found in the folder
     for image in image_list:
@@ -229,16 +230,16 @@ def extract_faces():
             # additional validation for minimum face size
             if face.shape[0] < 10 or face.shape[1] < 10:
                 continue
-                
+
             # save temporary temp_face image to faces_directory
             plt.imsave(fname = faces_directory + temp_face, format='png', arr=face)
 
             # call check_face function to verify and sort faces
             check_face(image, faces_directory, temp_face)
-        
+
         # update progress bar
         pbar.update(1)
-    
+
     # close progress bar
     pbar.close()
 
@@ -248,13 +249,14 @@ def sort_images():
     # create work_path if it doesn't exist
     if not os.path.exists(work_path):
         os.mkdir(work_path)
-    
+
     # calculate total number of images to copy for progress bar
     total_images = sum(len(list_of_faces[individual]) for individual in range(PersonID))
-    
-    # create progress bar for image copying
-    pbar = tqdm(total=total_images, desc="Assigning images", unit="image")
-    
+
+    # create progress bar for image copying with time-based ETA
+    pbar = tqdm(total=total_images, desc="Assigning images", unit="image",
+                bar_format='{l_bar}{bar}| {n_fmt}/{total_fmt} [{elapsed}<{remaining}, {rate_fmt}] {postfix}')
+
     # loop through all individual gathered faces listed in PersonID
     for individual in range(PersonID):
         # path variable for each PersonID's individual folder
@@ -267,7 +269,7 @@ def sort_images():
         base_face = faces_directory + person_face_prefix + str(individual) + person_face_filetype
         folder_face = individual_path + '_' + person_face_prefix + str(individual) + person_face_filetype
         shutil.copyfile(base_face, folder_face)
-        
+
         # loop through all pictures tied to the PersonID's list
         for pictures in list_of_faces[int(individual)]:
             # variables to copy images for each person
@@ -279,10 +281,10 @@ def sort_images():
 
             # copy each image to the PersonID's folder
             shutil.copyfile(copy_from_path, copy_to_path)
-            
+
             # update progress bar
             pbar.update(1)
-    
+
     # close progress bar
     pbar.close()
 
