@@ -1,16 +1,25 @@
+import os
+os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2'  # Suppress TensorFlow warnings
+
 from deepface import DeepFace
 from retinaface import RetinaFace
 import matplotlib.pyplot as plt
 import shutil
 import sys
 import cv2
-import os
+import argparse
+
+# parse command line arguments
+parser = argparse.ArgumentParser(description='FaceSort - Sort images by detected faces')
+parser.add_argument('-o', '--overwrite', action='store_true', help='Allow overwriting existing files')
+parser.add_argument('-i', '--input', type=str, default='./images/', help='Input directory containing images (default: ./images/)')
+args = parser.parse_args()
 
 # variables and paths declaration
 # work paths
-work_path = './facesort/'
-faces_directory = './facesort/faces/'
-images_directory = './images/'
+images_directory = args.input if args.input.endswith('/') else args.input + '/'
+work_path = images_directory + 'facesort/'
+faces_directory = images_directory + 'faces/'
 
 # specify which image formats are supported
 image_types = ('.jpg', '.jpeg', '.png', '.bmp')
@@ -33,30 +42,25 @@ image_list = []
 people_list = []
 PersonID = 0
 
+# set overwrite flag for backward compatibility
+arg = '-o' if args.overwrite else ''
 
-# get argument(s) if they were provided
-arg = ''
-if len(sys.argv) > 1:
-    arg = sys.argv[1]
+print("\nFaceSort - https://github.com/kkazakov/facesort/", "\n")
 
-print("\nFaceSort - https://github.com/jooleer/facesort/", "\n")
+# validate input directory exists
+if not os.path.exists(images_directory):
+    print("Error: Input directory does not exist:", images_directory)
+    exit(2)
 
-# check if paths already exist
-# create them if they don't
-if not os.path.exists(work_path):
-    os.mkdir(work_path)
-
-if not os.path.exists(faces_directory):
-    os.mkdir(faces_directory)
-
-else:
+# check if faces_directory already exists and has files
+if os.path.exists(faces_directory):
     # check if faces_directory is empty
     # if not, warn the user about overwriting previous data/images and exit
     dir = os.listdir(faces_directory)
     if len(dir) != 0 and arg != '-o':
         print("To avoid losing or overwriting data please make sure the", work_path, "and", faces_directory, "are empty of any data you don't want to lose.")
-        print("Use \"python facesort.py -o\" to allow overwriting files. (Not recommended)")
-        print("Alternatively, you can change the path variables in facesort.py")
+        print("Use \"python facesort.py -o\" or \"python facesort.py --overwrite\" to allow overwriting files. (Not recommended)")
+        print("Use \"python facesort.py -i <folder>\" to specify a different input folder.")
         exit(1)
 
     # if user still has files but uses -o parameter we continue anyway
@@ -80,7 +84,7 @@ def scan_images(directory="./"):
         exit(2)
     
     # print out the amount of images found 
-    print("Found", len(image_list), "images in", faces_directory)
+    print("Found", len(image_list), "images in", directory)
 
 
 # check faces folder if face already exists
@@ -145,6 +149,10 @@ def match_face(image, directory, face_to_check, list_of_people=people_list):
 
 # extract faces from images in image_list
 def extract_faces():
+    # create faces_directory if it doesn't exist
+    if not os.path.exists(faces_directory):
+        os.mkdir(faces_directory)
+    
     # loop through all images found in the folder
     for image in image_list:
         # use RetinaFace to get all faces in the image
@@ -164,6 +172,10 @@ def extract_faces():
 
 # sort images into individual PersonID's folders
 def sort_images():
+    # create work_path if it doesn't exist
+    if not os.path.exists(work_path):
+        os.mkdir(work_path)
+    
     # loop through all individual gathered faces listed in PersonID
     for individual in range(PersonID):
         # path variable for each PersonID's individual folder
@@ -211,5 +223,5 @@ if (os.path.isfile(faces_directory+temp_face)):
 print("Process completed successfully.")
 print(len(image_list),"image(s) were found and sorted into folders by",int(PersonID)-1,"unique faces.")
 print("\nThank you for using FaceSort.")
-print("https://github.com/jooleer/facesort/", "\n")
+print("https://github.com/kkazakov/facesort/", "\n")
 exit(0)

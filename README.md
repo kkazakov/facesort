@@ -7,7 +7,7 @@ FaceSort uses python with a combination of the [Deepface](https://github.com/ser
 
 # Installation:
 
-Making sure the packages from `requirements.txt` are installed, the easiest way is to `git clone https://github.com/jooleer/facesort` and use `pip install -r requirements.txt`
+Making sure the packages from `requirements.txt` are installed, the easiest way is to `git clone https://github.com/kkazakov/facesort` and use `pip install -r requirements.txt`
 
 Alternatively, you can also manually install the packages:
 
@@ -16,23 +16,38 @@ pip install deepface
 pip install retina-face
 pip install matplotlib
 pip install opencv-python
+pip install tf-keras
+pip install tensorflow
 ```
 
 and afterwards use `git clone https://github.com/joleer/facesort` or manually download and extract the repository.  
+<br/>
+For CUDA 11.8 (which I'm having) I had to install
+
+```
+TensorFlow 2.12.0
+NumPy 1.23.5
+Keras 2.12.0
+```
+
+Other CUDA versions will require different versions of the libraries.
+<br/>
+The script will fallback to CPU if GPU cannot be used.
+<br/>
 <br/>
 
 # Usage:
 
 **Supported image filetypes are:** jpg, jpeg, png and bmp
 
-Place facesort.py one folder above your `./images` folder or set a custom folder in _facesort.py_ under _images_directory_
+Run by using `python facesort.py -i <folder>`
 
-Run by using `python facesort.py`
+`<folder>` is the target folder to be processed with input images.
 
 The application will start off by scanning all images in the folder and making a list of all the unique faces found.
 After all images have been checked for faces, the original images will be copied into new folders with each folder being tied to one person's face.
 
-After the application is done all orignal images will be untouched and you can find your sorted images and person folders in the `./facesort/` folder.
+After the application is done all orignal images will be untouched and you can find your sorted images and person folders in the `<input>./facesort/` folder.
 
 **The first time running this software, one or several pre-trained weight files might be automatically downloaded.**
 
@@ -75,3 +90,6 @@ FaceSort by default uses the VGG-Face model (link: http://www.robots.ox.ac.uk/~v
 If you are interested in more information about the technologies used by FaceSort check out **DeepFace** on [GitHub](https://github.com/serengil/deepface) and [Wikipedia](https://en.wikipedia.org/wiki/DeepFace), **RetinaFace** on [GitHub](), **Face Detection** on [Wikipedia](https://en.wikipedia.org/wiki/Face_detection) and **Facial Recognition** on [Wikipedia](https://en.wikipedia.org/wiki/Facial_recognition_system)  
 <br/>
 _This software was created for educational purposes for my final project for CS50 and is licensed under the [MIT License](https://github.com/jooleer/facesort/blob/main/LICENSE)._
+<br/>
+<br/>
+NOTE: This project was forked from the original, and slightly improved. I fixed errors with loading GPU libs and added folder parameters and output is now underneath the same folder
